@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Webpack App</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-size: 14px;
+    }
+
+    user-calendar-activities a {
+      transition: background-color 100ms linear, color 100ms linear, border 100ms linear;
+      color: #1b69b6;
+      text-decoration: none;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .user-contrib-text {
+      font-size: 12px;
+      fill: #959494;
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 1070;
+      display: block;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      font-style: normal;
+      font-weight: normal;
+      letter-spacing: normal;
+      line-break: auto;
+      line-height: 1.428571429;
+      text-align: left;
+      text-align: start;
+      text-decoration: none;
+      text-shadow: none;
+      text-transform: none;
+      white-space: normal;
+      word-break: normal;
+      word-spacing: normal;
+      word-wrap: normal;
+      font-size: 12px;
+      opacity: 0;
+      filter: alpha(opacity=0)
+    }
+
+    .tooltip.in {
+      opacity: 0.9;
+      filter: alpha(opacity=90)
+    }
+
+    .tooltip.top {
+      margin-top: -3px;
+      padding: 5px 0
+    }
+
+    .tooltip.right {
+      margin-left: 3px;
+      padding: 0 5px
+    }
+
+    .tooltip.bottom {
+      margin-top: 3px;
+      padding: 5px 0
+    }
+
+    .tooltip.left {
+      margin-left: -3px;
+      padding: 0 5px
+    }
+
+    .tooltip-inner {
+      max-width: 200px;
+      padding: 3px 8px;
+      color: #fff;
+      text-align: center;
+      background-color: #000;
+      border-radius: 3px
+    }
+
+    .tooltip-arrow {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-color: transparent;
+      border-style: solid
+    }
+
+    .tooltip.top .tooltip-arrow {
+      bottom: 0;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px 5px 0;
+      border-top-color: #000
+    }
+
+    .tooltip.top-left .tooltip-arrow {
+      bottom: 0;
+      right: 5px;
+      margin-bottom: -5px;
+      border-width: 5px 5px 0;
+      border-top-color: #000
+    }
+
+    .tooltip.top-right .tooltip-arrow {
+      bottom: 0;
+      left: 5px;
+      margin-bottom: -5px;
+      border-width: 5px 5px 0;
+      border-top-color: #000
+    }
+
+    .tooltip.right .tooltip-arrow {
+      top: 50%;
+      left: 0;
+      margin-top: -5px;
+      border-width: 5px 5px 5px 0;
+      border-right-color: #000
+    }
+
+    .tooltip.left .tooltip-arrow {
+      top: 50%;
+      right: 0;
+      margin-top: -5px;
+      border-width: 5px 0 5px 5px;
+      border-left-color: #000
+    }
+
+    .tooltip.bottom .tooltip-arrow {
+      top: 0;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 0 5px 5px;
+      border-bottom-color: #000
+    }
+
+    .tooltip.bottom-left .tooltip-arrow {
+      top: 0;
+      right: 5px;
+      margin-top: -5px;
+      border-width: 0 5px 5px;
+      border-bottom-color: #000
+    }
+
+    .tooltip.bottom-right .tooltip-arrow {
+      top: 0;
+      left: 5px;
+      margin-top: -5px;
+      border-width: 0 5px 5px;
+      border-bottom-color: #000
+    }
+
+    ul.bordered-list,
+    ul.unstyled-list {
+      margin: 5px 0;
+      padding: 0;
+      list-style: none
+    }
+
+    ul.bordered-list>li,
+    ul.unstyled-list>li {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      display: block;
+      margin: 0
+    }
+
+    ul.bordered-list>li:before,
+    ul.bordered-list>li:after,
+    ul.unstyled-list>li:before,
+    ul.unstyled-list>li:after {
+      content: " ";
+      display: table
+    }
+
+    ul.bordered-list>li:after,
+    ul.unstyled-list>li:after {
+      clear: both
+    }
+
+    ul.bordered-list>li:last-child,
+    ul.unstyled-list>li:last-child {
+      border-bottom: 0
+    }
+
+    ul.bordered-list>li.active,
+    ul.unstyled-list>li.active {
+      background: #fafafa
+    }
+
+    ul.bordered-list>li.active a,
+    ul.unstyled-list>li.active a {
+      font-weight: 600
+    }
+
+    ul.bordered-list>li.hide,
+    ul.unstyled-list>li.hide {
+      display: none
+    }
+
+    ul.bordered-list>li.light a,
+    ul.bordered-list>li.description-block a,
+    ul.unstyled-list>li.light a,
+    ul.unstyled-list>li.description-block a {
+      color: #2e2e2e
+    }
+
+    ul.bordered-list.top-list li:first-child,
+    ul.unstyled-list.top-list li:first-child {
+      padding-top: 0
+    }
+
+    ul.bordered-list.top-list li:first-child h4,
+    ul.bordered-list.top-list li:first-child h5,
+    ul.unstyled-list.top-list li:first-child h4,
+    ul.unstyled-list.top-list li:first-child h5 {
+      margin-top: 0
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="/jquery-3.3.1.min.js"></script>
+</head>
+
+<body>
+  <div class="user-calendar" data-calendar-activities-path="http://igit.58corp.com/users/gonghongyu/calendar_activities"
+    data-calendar-path="http://igit.58corp.com/users/gonghongyu/calendar.json" data-utc-offset="28800">
+    <h4 class="center light">
+      <i class="fa fa-spinner fa-spin"></i>
+    </h4>
+  </div>
+  <div class="user-calendar-activities">
+  </div>
+</body>
+
+</html>
