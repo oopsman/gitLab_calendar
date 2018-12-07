@@ -18,7 +18,7 @@ gitLab的提交墙前端库
     "2018-11-03": 1
 }
 ```
-#点击某天获取提交信息接口格式
+# 点击某天获取提交信息接口格式
 ```
 <h4 class="prepend-top-20">
 Contributions for
