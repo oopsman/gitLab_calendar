@@ -1,6 +1,7 @@
 const path = require('path');
 
 module.exports = {
+  mode: 'production',
   entry: {
     main: './d3Wrapper.js'
   },
@@ -10,7 +11,7 @@ module.exports = {
     libraryTarget: 'umd',
     filename: 'index_bundle.js'
   },
-  devtool: '#eval-source-map',
+  //devtool: '#eval-source-map',
   module: {
     rules: [{
         test: /\.js$/,

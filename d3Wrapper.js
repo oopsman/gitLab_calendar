@@ -1,10 +1,18 @@
-
 import './dateFormat';
 import './tooltip';
-import { scaleLinear, scaleThreshold } from 'd3-scale';
-import { select } from 'd3-selection';
+import {
+  scaleLinear,
+  scaleThreshold
+} from 'd3-scale';
+import {
+  select
+} from 'd3-selection';
 
-const d3 = { select, scaleLinear, scaleThreshold };
+const d3 = {
+  select,
+  scaleLinear,
+  scaleThreshold
+};
 
 const LOADING_HTML = `
   <div class="text-center">
@@ -12,15 +20,15 @@ const LOADING_HTML = `
   </div>
 `;
 
-function getDayName(date){
-    return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+function getDayName(date) {
+  return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
 }
 
-function getDayDifference(a,b){
-    const millisecondsPerDay = 1000 * 60 * 60 * 24;
-    const date1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-    const date2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-    return Math.floor((date2 - date1) / millisecondsPerDay);
+function getDayDifference(a, b) {
+  const millisecondsPerDay = 1000 * 60 * 60 * 24;
+  const date1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const date2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.floor((date2 - date1) / millisecondsPerDay);
 }
 
 function getSystemDate(systemUtcOffsetSeconds) {
@@ -31,26 +39,34 @@ function getSystemDate(systemUtcOffsetSeconds) {
   return date;
 }
 
-function formatTooltipText({ date, count }) {
+function formatTooltipText({
+  date,
+  commitNum,
+  releaseNum
+}) {
   const dateObject = new Date(date);
   const dateDayName = getDayName(dateObject);
   const dateText = dateObject.format('mmm d, yyyy');
 
-  let contribText = 'No contributions';
-  if (count > 0) {
-    contribText = `${count} 次提交`;
+  let contribText = '无活跃度';
+  if (commitNum > 0) {
+    contribText = `活跃度 ${commitNum}`;
+  }
+  if (releaseNum > 0) {
+    contribText += `<br />${releaseNum} 次上线`;
   }
   return `${contribText}<br />${dateDayName} ${dateText}`;
 }
 
 const initColorKey = () =>
   d3
-    .scaleLinear()
-    .range(['#e48bdc', '#61185f'])
-    .domain([0, 3]);
+  .scaleLinear()
+  .range(['#e48bdc', '#61185f'])
+  .domain([0, 3]);
 
 class ActivityCalendar {
-  constructor(container, timestamps, calendarActivitiesPath, utcOffset = 0, firstDayOfWeek = 0) {
+  constructor(panelName, container, timestamps, calendarActivitiesPath, utcOffset = 0, firstDayOfWeek = 0, year) {
+    this.panelName = panelName;
     this.calendarActivitiesPath = calendarActivitiesPath;
     this.clickDay = this.clickDay.bind(this);
     this.currentSelectedDate = '';
@@ -82,18 +98,41 @@ class ActivityCalendar {
     const today = getSystemDate(utcOffset);
     today.setHours(0, 0, 0, 0, 0);
 
+    const nowYear = new Date(today);
+    const thisYear = nowYear.getFullYear();
+    nowYear.setMonth(0);
+    nowYear.setDate(0);
+
     const oneYearAgo = new Date(today);
     oneYearAgo.setFullYear(today.getFullYear() - 1);
+    oneYearAgo.setMonth(0);
+    oneYearAgo.setDate(0);
 
-    const days = getDayDifference(oneYearAgo, today);
+    const twoYearAgo = new Date(today);
+    twoYearAgo.setFullYear(today.getFullYear() - 2);
+    twoYearAgo.setMonth(0);
+    twoYearAgo.setDate(0);
 
-    for (let i = 0; i <= days; i += 1) {
-      const date = new Date(oneYearAgo);
+    //const diffDays = Math.floor((tomorrowYear.getTime() - today.getTime()) / (24 * 60* 60 * 1000));
+    //const btwnYearDays = Math.floor((oneYearAgoCP.getTime() - twoYearAgo.getTime()) / (24 * 60* 60 * 1000)); 
+    //const days = getDayDifference(oneYearAgo, today);
+
+    const allDays = nowYear.getFullYear() / 4 == 0 ? "366" : "365";
+    let baseYearAgo = nowYear;
+    if (year == (thisYear - 2)) {
+      baseYearAgo = twoYearAgo;
+    } else if (year == (thisYear - 1)) {
+      baseYearAgo = oneYearAgo;
+    }
+
+    for (let i = 0; i <= allDays; i += 1) {
+      const date = new Date(baseYearAgo);
       date.setDate(date.getDate() + i);
 
       const day = date.getDay();
-      const count = timestamps[date.format('yyyy-mm-dd')] || 0;
-
+      let tmp = timestamps[date.format('yyyy-mm-dd')];
+      const commitNum = tmp ? (tmp.commitNum || 0) : 0;
+      const releaseNum = tmp ? (tmp.releaseNum || 0) : 0;
       // Create a new group array if this is the first day of the week
       // or if is first object
       if ((day === this.firstDayOfWeek && i !== 0) || i === 0) {
@@ -103,12 +142,18 @@ class ActivityCalendar {
 
       // Push to the inner array the values that will be used to render map
       const innerArray = this.timestampsTmp[group - 1];
-      innerArray.push({ count, date, day });
+      innerArray.push({
+        commitNum,
+        releaseNum,
+        date,
+        day
+      });
     }
 
     // Init color functions
     this.colorKey = initColorKey();
     this.color = this.initColor();
+    this.teamColor = this.initTeamColor();
 
     // Init the svg element
     this.svg = this.renderSvg(container, group);
@@ -118,7 +163,9 @@ class ActivityCalendar {
     this.renderKey();
 
     // Init tooltips
-    $(`${container} .js-tooltip`).tooltip({ html: true });
+    $(`${container} .js-tooltip`).tooltip({
+      html: true
+    });
   }
 
   // Add extra padding for the last month label if it is also the last column
@@ -139,7 +186,7 @@ class ActivityCalendar {
     return d3
       .select(container)
       .append('svg')
-      .attr('width', width)
+      .attr('width', width + 16)
       .attr('height', 167)
       .attr('class', 'contrib-calendar');
   }
@@ -156,20 +203,23 @@ class ActivityCalendar {
       .enter()
       .append('g')
       .attr('transform', (group, i) => {
-        $.each(group, (a,stamp) => {
+        $.each(group, (a, stamp) => {
           if (a === 0 && stamp.day === 0) {
             const month = stamp.date.getMonth();
             const x = this.daySizeWithSpace * i + 1 + this.daySizeWithSpace;
-            const lastMonth = _this.months[_this.months.length -1];
+            const lastMonth = _this.months[_this.months.length - 1];
             if (
               lastMonth == null ||
               (month !== lastMonth.month && x - this.daySizeWithSpace !== lastMonth.x)
             ) {
-              _this.months.push({ month, x });
+              _this.months.push({
+                month,
+                x
+              });
             }
           }
         });
-        return `translate(${this.daySizeWithSpace * i + 8 + this.daySizeWithSpace}, 18)`;
+        return `translate(${this.daySizeWithSpace * i + 12 + this.daySizeWithSpace}, 18)`;
       })
       .selectAll('rect')
       .data(stamp => stamp)
@@ -181,7 +231,19 @@ class ActivityCalendar {
       .attr('height', this.daySize)
       .attr(
         'fill',
-        stamp => (stamp.count !== 0 ? this.color(Math.min(stamp.count, 40)) : '#ebedf0'),
+        stamp => {
+          if (!(stamp.releaseNum)) {
+            stamp.releaseNum = 0
+          }
+          if (!(stamp.commitNum)) {
+            stamp.commitNum = 0
+          }
+          if (this.panelName.indexOf("team") > -1) {
+            return (stamp.commitNum + stamp.releaseNum !== 0 ? this.teamColor(Math.min(stamp.commitNum + stamp.releaseNum, 90)) : '#ebedf0')
+          } else {
+            return (stamp.commitNum + stamp.releaseNum !== 0 ? this.color(Math.min(stamp.commitNum + stamp.releaseNum, 30)) : '#ebedf0')
+          }
+        }
       )
       .attr('title', stamp => formatTooltipText(stamp))
       .attr('class', 'user-contrib-cell js-tooltip')
@@ -190,8 +252,7 @@ class ActivityCalendar {
   }
 
   renderDayTitles() {
-    const days = [
-      {
+    const days = [{
         text: '周一',
         y: 29 + this.dayYPos(1),
       },
@@ -211,7 +272,7 @@ class ActivityCalendar {
       .enter()
       .append('text')
       .attr('text-anchor', 'middle')
-      .attr('x', 10)
+      .attr('x', 13)
       .attr('y', day => day.y)
       .text(day => day.text)
       .attr('class', 'user-contrib-text');
@@ -233,11 +294,18 @@ class ActivityCalendar {
 
   renderKey() {
     const keyValues = [
-      '没有提交',
-      '1-9 提交',
-      '10-19 提交',
-      '20-29 提交',
-      '30+ 提交',
+      '无活跃度',
+      '1-9 活跃度',
+      '10-19 活跃度',
+      '20-29 活跃度',
+      '30+ 活跃度'
+    ];
+    const teamKeyValues = [
+      '无活跃度',
+      '1-30 活跃度',
+      '31-60 活跃度',
+      '61-90 活跃度',
+      '90+ 活跃度'
     ];
     const keyColors = [
       '#ebedf0',
@@ -249,7 +317,7 @@ class ActivityCalendar {
 
     this.svg
       .append('g')
-      .attr('transform', `translate(18, ${this.daySizeWithSpace * 8 + 18})`)
+      .attr('transform', `translate(18, ${this.daySizeWithSpace * 8 + 12})`)
       .selectAll('rect')
       .data(keyColors)
       .enter()
@@ -260,7 +328,13 @@ class ActivityCalendar {
       .attr('y', 0)
       .attr('fill', color => color)
       .attr('class', 'js-tooltip')
-      .attr('title', (color, i) => keyValues[i])
+      .attr('title', (color, i) => {
+        if (this.panelName.indexOf("team") > -1) {
+          return teamKeyValues[i]
+        } else {
+          return keyValues[i]
+        }
+      })
       .attr('data-container', 'body');
   }
 
@@ -278,7 +352,22 @@ class ActivityCalendar {
       .range(colorRange);
   }
 
+  initTeamColor() {
+    const colorRange = [
+      '#ededed',
+      this.colorKey(0),
+      this.colorKey(1),
+      this.colorKey(2),
+      this.colorKey(3),
+    ];
+    return d3
+      .scaleThreshold()
+      .domain([0, 30, 60, 90])
+      .range(colorRange);
+  }
+
   clickDay(stamp) {
+    let _this = this;
     if (this.currentSelectedDate !== stamp.date) {
       this.currentSelectedDate = stamp.date;
 
@@ -288,20 +377,26 @@ class ActivityCalendar {
         this.currentSelectedDate.getDate(),
       ].join('-');
 
-      $('.user-calendar-activities').html(LOADING_HTML);
 
-      $.get(this.calendarActivitiesPath,{date:date})
-        .done(function(data){
-          $('.user-calendar-activities').html(data);
+      $(`.${this.panelName}-calendar-activities`).html(LOADING_HTML);
+
+      $.get(this.calendarActivitiesPath, {
+          beginTime: new Date(date).getTime(),
+          endTime: new Date(date).getTime() + (1000 * 60 * 60 * 24)
         })
-        .fail(function(e){
+        .done(function (data) {
+          $(`.${_this.panelName}-calendar-activities`).html(data);
+        })
+        .fail(function (e) {
           console.log('An error occurred while retrieving calendar activity');
         });
     } else {
       this.currentSelectedDate = '';
-      $('.user-calendar-activities').html('');
+      $(`.${_this.panelName}-calendar-activities`).html('');
     }
   }
 }
 
-export  {ActivityCalendar as ActivityCalendar}
+export {
+  ActivityCalendar as ActivityCalendar
+}

@@ -230,39 +230,67 @@
 </head>
 
 <body>
-  <div class="user-calendar" data-calendar-activities-path="http://igit.58corp.com/users/gonghongyu/calendar_activities"
-    data-calendar-path="http://igit.58corp.com/users/gonghongyu/calendar.json" data-utc-offset="28800">
+  <div class="user-calendar" data-calendar-activities-path="/mock.json"
+    data-calendar-path="/mock.json" data-utc-offset="28800">
     <h4 class="center light">
       <i class="fa fa-spinner fa-spin"></i>
     </h4>
   </div>
   <div class="user-calendar-activities">
   </div>
+  <hr>
+  <div class="team-calendar" data-calendar-activities-path="/mock.json"
+  data-calendar-path="/mock.json" data-utc-offset="28800">
+  <h4 class="center light">
+    <i class="fa fa-spinner fa-spin"></i>
+  </h4>
+</div>
+<div class="team-calendar-activities">
+</div>
   <script type="text/javascript" src="index_bundle.js"></script>
 </body>
 <script>
-  const CALENDAR_TEMPLATE = `
+
+let CALENDAR_TEMPLATE = function(name){
+  return `
     <div class="clearfix calendar">
-        <div class="js-contrib-calendar"></div>
+        <div class="${name}-contrib-calendar"></div>
     </div>
     `;
-  const $calendarWrap = $('.user-calendar');
-  const calendarPath = $calendarWrap.data('calendarPath');
-  const calendarActivitiesPath = $calendarWrap.data('calendarActivitiesPath');
-  const utcOffset = $calendarWrap.data('utcOffset');
-  let utcFormatted = 'UTC';
-  if (utcOffset !== 0) {
-    utcFormatted = `UTC${utcOffset > 0 ? '+' : ''}${(utcOffset / 3600)}`;
-  }
+};
 
+function getCalendar(name) {
+  let calendarWrap = $(`.${name}-calendar`);
+  let calendarPath = calendarWrap.data("calendarPath");
+  let calendarActivitiesPath = calendarWrap.data("calendarActivitiesPath");
+  let utcOffset = calendarWrap.data("utcOffset");
+  let utcFormatted = "UTC";
+  if (utcOffset !== 0) {
+    utcFormatted = `UTC${utcOffset > 0 ? "+" : ""}${utcOffset / 3600}`;
+  }
   $.get(calendarPath)
-    .done(function (data) {
-      $calendarWrap.html(CALENDAR_TEMPLATE);
-      new D3Wrapper.ActivityCalendar('.js-contrib-calendar', data, calendarActivitiesPath, utcOffset);
+    .done(function(data) {
+      calendarWrap.html(CALENDAR_TEMPLATE(name));
+      if (data.code == 0) {
+        new D3Wrapper.ActivityCalendar(
+          name,
+          `.${name}-contrib-calendar`,
+          data.timestamps,
+          calendarActivitiesPath,
+          utcOffset,
+          0,
+          2017
+        );
+      }
     })
-    .fail(function (e) {
-      console.log('There was an error loading users activity calendar.');
+    .fail(function(e) {
+      console.log("There was an error loading users activity calendar.");
     });
+}
+//
+getCalendar("user");
+//
+getCalendar("team");
 </script>
 
 </html>
